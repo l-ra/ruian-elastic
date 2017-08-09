@@ -1,0 +1,454 @@
+[
+	{
+		"csvName": "CE_DRUH_KONSTRUKCE",
+		"xmlName": "vf:DruhyKonstrukce",
+		"descr": "druhy konstrukcí stavebního objektu",
+		"prefix": "konstrukce",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "cihly/tvárnice/cihlové-bloky"
+			},
+			{
+				"id": 2,
+				"meaning": "kámen"
+			},
+			{
+				"id": 3,
+				"meaning": "kámen/cihly"
+			},
+			{
+				"id": 4,
+				"meaning": "stěnové-panely"
+			},
+			{
+				"id": 5,
+				"meaning": "nepálené-cihly"
+			},
+			{
+				"id": 6,
+				"meaning": "dřevo"
+			},
+			{
+				"id": 7,
+				"meaning": "jiné"
+			},
+			{
+				"id": 8,
+				"meaning": "nedefinováno"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			},
+			{
+				"id": 10,
+				"meaning": "kámen/cihly/tvárnice/kombinace"
+			},
+			{
+				"id": 11,
+				"meaning": "monolit"
+			}
+		]
+	},
+	{
+		"csvName": "CE_PRIPOJENI_KANAL",
+		"xmlName": "vf:PripojeniKanalu",
+		"descr": "připojení stavebního objektu ke kanalizaci",
+		"prefix": "kanalizace",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "připojena"
+			},
+			{
+				"id": 2,
+				"meaning": "vlastní-čistička"
+			},
+			{
+				"id": 3,
+				"meaning": "žumpa-jímka"
+			},
+			{
+				"id": 4,
+				"meaning": "není"
+			},
+			{
+				"id": 8,
+				"meaning": "nedefinováno"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			}
+		]
+	},
+	{
+		"csvName": "CE_PRIPOJENI_PLYNU",
+		"xmlName": "vf:PripojeniPlynu",
+		"descr": "připojení stavebního objektu k rozvodu plynu",
+		"prefix": "plyn",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "veřejná-síť"
+			},
+			{
+				"id": 2,
+				"meaning": "domovní-zásobník"
+			},
+			{
+				"id": 3,
+				"meaning": "není"
+			},
+			{
+				"id": 8,
+				"meaning": "nedefinováno"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			},
+			{
+				"id": 51,
+				"meaning": "v-domě"
+			}
+		]
+	},
+	{
+		"csvName": "CE_PRIPOJENI_VODY",
+		"xmlName": "vf:PripojeniVody",
+		"descr": "připojení stavebního objektu k vodovodu",
+		"prefix": "vodovod",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "připojen"
+			},
+			{
+				"id": 2,
+				"meaning": "nepřipojen"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			}
+		]
+	},
+	{
+		"csvName": "CE_VYBAVENI_VYTAHEM",
+		"xmlName": "vf:VybaveniVytahu",
+		"descr": "vybavení stavebního objektu výtahem",
+		"prefix": "výtah",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "je"
+			},
+			{
+				"id": 2,
+				"meaning": "není"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			}
+		]
+	},
+	{
+		"csvName": "CE_ZPUSOB_VYTAPENI",
+		"xmlName": "vf:ZpusobyVytapeni",
+		"descr": "způsoby vytápění stavebního objektu",
+		"prefix": "vytápění",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "centrální-domovní"
+			},
+			{
+				"id": 2,
+				"meaning": "centrální-dálkové"
+			},
+			{
+				"id": 3,
+				"meaning": "lokální"
+			},
+			{
+				"id": 4,
+				"meaning": "jiné-nebo-bez"
+			},
+			{
+				"id": 9,
+				"meaning": "nezjištěno"
+			}
+		]
+	},
+	{
+		"csvName": "CE_ZPUSOB_VYUZITI_OBJEKTU",
+		"xmlName": "vf:ZpusobyVyuzitiObjektu",
+		"descr": "způsoby využití stavebního objektu",
+		"prefix": "využití-objektu",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "průmyslový"
+			},
+			{
+				"id": 2,
+				"meaning": "zemědělská-usedlost"
+			},
+			{
+				"id": 3,
+				"meaning": "bydlení"
+			},
+			{
+				"id": 4,
+				"meaning": "lesní-hospodářství"
+			},
+			{
+				"id": 5,
+				"meaning": "občanská-vybavenosti"
+			},
+			{
+				"id": 6,
+				"meaning": "bytový-dům"
+			},
+			{
+				"id": 7,
+				"meaning": "rodinný-dům"
+			},
+			{
+				"id": 8,
+				"meaning": "rodinná-rekreaci"
+			},
+			{
+				"id": 9,
+				"meaning": "shromažďování-osob"
+			},
+			{
+				"id": 10,
+				"meaning": "obchod"
+			},
+			{
+				"id": 11,
+				"meaning": "ubytovací-zařízení"
+			},
+			{
+				"id": 12,
+				"meaning": "výroba-skladování"
+			},
+			{
+				"id": 13,
+				"meaning": "zemědělství"
+			},
+			{
+				"id": 14,
+				"meaning": "administrativa"
+			},
+			{
+				"id": 15,
+				"meaning": "občanské-vybavení"
+			},
+			{
+				"id": 16,
+				"meaning": "technické-vybavení"
+			},
+			{
+				"id": 17,
+				"meaning": "doprava"
+			},
+			{
+				"id": 18,
+				"meaning": "garáž"
+			},
+			{
+				"id": 19,
+				"meaning": "jiné"
+			},
+			{
+				"id": 20,
+				"meaning": "víceúčelové"
+			},
+			{
+				"id": 21,
+				"meaning": "skleník"
+			},
+			{
+				"id": 22,
+				"meaning": "přehrada"
+			},
+			{
+				"id": 23,
+				"meaning": "hráz"
+			},
+			{
+				"id": 24,
+				"meaning": "protipovodňová-hráz"
+			},
+			{
+				"id": 25,
+				"meaning": "hráz-umělé-vodní-nádrže"
+			},
+			{
+				"id": 26,
+				"meaning": "jez"
+			},
+			{
+				"id": 27,
+				"meaning": "plavební"
+			},
+			{
+				"id": 28,
+				"meaning": "vodní-elektrárna"
+			},
+			{
+				"id": 29,
+				"meaning": "odkaliště"
+			},
+			{
+				"id": 30,
+				"meaning": "rozestavěno"
+			}
+		]
+	},
+	{
+		"csvName": "CS_TYP_STAVEBNIHO_OBJEKTU",
+		"xmlName": "vf:TypyStavebnichObjektu",
+		"descr": "typy stavebního objektu",
+		"prefix": "objekt",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "s-číslem-popisným"
+			},
+			{
+				"id": 2,
+				"meaning": "s-číslem-evidenčním"
+			},
+			{
+				"id": 3,
+				"meaning": "bez-čísla"
+			}
+		]
+	},
+	{
+		"csvName": "CE_CHARAKTER_ZSJ",
+		"xmlName": "vf:CharakteryZSJ",
+		"descr": "charaktery ZSJ",
+		"prefix": "charakter",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "obytná-plochav-v-zástavbě"
+			},
+			{
+				"id": 2,
+				"meaning": "odloučená-obytná-plocha"
+			},
+			{
+				"id": 3,
+				"meaning": "průmyslový-areál"
+			},
+			{
+				"id": 4,
+				"meaning": "dopravní-areál"
+			},
+			{
+				"id": 5,
+				"meaning": "občanská-vybavenost"
+			},
+			{
+				"id": 6,
+				"meaning": "ostatní"
+			},
+			{
+				"id": 7,
+				"meaning": "rezervní"
+			},
+			{
+				"id": 8,
+				"meaning": "rekreační"
+			},
+			{
+				"id": 9,
+				"meaning": "zemědělská"
+			},
+			{
+				"id": 10,
+				"meaning": "lesní"
+			},
+			{
+				"id": 11,
+				"meaning": "venkovská-smíšená"
+			},
+			{
+				"id": 12,
+				"meaning": "venkovská-bez-zástavby"
+			}
+		]
+	},
+	{
+		"csvName": "CS_STATUS_OBCE",
+		"xmlName": "vf:StatusObci",
+		"descr": "statusy obcí",
+		"prefix": "status",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "vojenský-újezd"
+			},
+			{
+				"id": 2,
+				"meaning": "obec"
+			},
+			{
+				"id": 3,
+				"meaning": "město"
+			},
+			{
+				"id": 4,
+				"meaning": "statutární-město"
+			},
+			{
+				"id": 5,
+				"meaning": "hlavní-město"
+			},
+			{
+				"id": 6,
+				"meaning": "městys"
+			}
+		]
+	},
+	{
+		"csvName": "CS_CLENENI_SM_ROZSAH",
+		"xmlName": "vf:CleneniSmRozsahu",
+		"descr": "rozsahy členění statutárního města na MOMC",
+		"prefix": "rozsah-členění-statutárního-města",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "částečné"
+			},
+			{
+				"id": 2,
+				"meaning": "úplné"
+			}
+		]
+	},
+	{
+		"csvName": "CS_CLENENI_SM_TYP",
+		"xmlName": "vf:CleneniSmTypu",
+		"descr": "typy členění statutárního města na MOMC",
+		"prefix": "typ-členění-statutárního-města",
+		"values": [
+			{
+				"id": 1,
+				"meaning": "městská-část"
+			},
+			{
+				"id": 2,
+				"meaning": "městský-obvod"
+			}
+		]
+	}
+]
