@@ -1,7 +1,10 @@
 [
 	{
 		"csvName": "CE_DRUH_KONSTRUKCE",
-		"xmlName": "vf:DruhyKonstrukce",
+		"xmlName": [
+			"vf:DruhyKonstrukce",
+			"soi:DruhKonstrukceKod"
+		],
 		"descr": "druhy konstrukcí stavebního objektu",
 		"prefix": "konstrukce",
 		"values": [
@@ -53,7 +56,10 @@
 	},
 	{
 		"csvName": "CE_PRIPOJENI_KANAL",
-		"xmlName": "vf:PripojeniKanalu",
+		"xmlName": [
+			"vf:PripojeniKanalu",
+			"soi:PripojeniKanalizaceKod"
+		],
 		"descr": "připojení stavebního objektu ke kanalizaci",
 		"prefix": "kanalizace",
 		"values": [
@@ -85,7 +91,10 @@
 	},
 	{
 		"csvName": "CE_PRIPOJENI_PLYNU",
-		"xmlName": "vf:PripojeniPlynu",
+		"xmlName": [
+			"vf:PripojeniPlynu",
+			"soi:PripojeniPlynKod"
+		],
 		"descr": "připojení stavebního objektu k rozvodu plynu",
 		"prefix": "plyn",
 		"values": [
@@ -117,7 +126,10 @@
 	},
 	{
 		"csvName": "CE_PRIPOJENI_VODY",
-		"xmlName": "vf:PripojeniVody",
+		"xmlName": [
+			"vf:PripojeniVody",
+			"soi:PripojeniVodovodKod"
+		],
 		"descr": "připojení stavebního objektu k vodovodu",
 		"prefix": "vodovod",
 		"values": [
@@ -137,7 +149,10 @@
 	},
 	{
 		"csvName": "CE_VYBAVENI_VYTAHEM",
-		"xmlName": "vf:VybaveniVytahu",
+		"xmlName": [
+			"vf:VybaveniVytahu",
+			"soi:VybaveniVytahemKod"
+		],
 		"descr": "vybavení stavebního objektu výtahem",
 		"prefix": "výtah",
 		"values": [
@@ -157,7 +172,10 @@
 	},
 	{
 		"csvName": "CE_ZPUSOB_VYTAPENI",
-		"xmlName": "vf:ZpusobyVytapeni",
+		"xmlName": [
+			"vf:ZpusobyVytapeni",
+			"soi:ZpusobVytapeniKod"
+		],
 		"descr": "způsoby vytápění stavebního objektu",
 		"prefix": "vytápění",
 		"values": [
@@ -185,7 +203,10 @@
 	},
 	{
 		"csvName": "CE_ZPUSOB_VYUZITI_OBJEKTU",
-		"xmlName": "vf:ZpusobyVyuzitiObjektu",
+		"xmlName": [
+			"vf:ZpusobyVyuzitiObjektu",
+			"soi:ZpusobVyuzitiKod"
+		],
 		"descr": "způsoby využití stavebního objektu",
 		"prefix": "využití-objektu",
 		"values": [
@@ -313,7 +334,10 @@
 	},
 	{
 		"csvName": "CS_TYP_STAVEBNIHO_OBJEKTU",
-		"xmlName": "vf:TypyStavebnichObjektu",
+		"xmlName": [
+			"vf:TypyStavebnichObjektu",
+			"soi:TypStavebnihoObjektuKod"
+		],
 		"descr": "typy stavebního objektu",
 		"prefix": "objekt",
 		"values": [
@@ -333,7 +357,9 @@
 	},
 	{
 		"csvName": "CE_CHARAKTER_ZSJ",
-		"xmlName": "vf:CharakteryZSJ",
+		"xmlName": [
+			"vf:CharakteryZSJ"
+		],
 		"descr": "charaktery ZSJ",
 		"prefix": "charakter",
 		"values": [
@@ -389,7 +415,9 @@
 	},
 	{
 		"csvName": "CS_STATUS_OBCE",
-		"xmlName": "vf:StatusObci",
+		"xmlName": [
+			"vf:StatusObci"
+		],
 		"descr": "statusy obcí",
 		"prefix": "status",
 		"values": [
@@ -421,7 +449,9 @@
 	},
 	{
 		"csvName": "CS_CLENENI_SM_ROZSAH",
-		"xmlName": "vf:CleneniSmRozsahu",
+		"xmlName": [
+			"vf:CleneniSmRozsahu"
+		],
 		"descr": "rozsahy členění statutárního města na MOMC",
 		"prefix": "rozsah-členění-statutárního-města",
 		"values": [
@@ -437,7 +467,9 @@
 	},
 	{
 		"csvName": "CS_CLENENI_SM_TYP",
-		"xmlName": "vf:CleneniSmTypu",
+		"xmlName": [
+			"vf:CleneniSmTypu"
+		],
 		"descr": "typy členění statutárního města na MOMC",
 		"prefix": "typ-členění-statutárního-města",
 		"values": [
