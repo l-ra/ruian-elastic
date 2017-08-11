@@ -1,25 +1,20 @@
 const libxmljs = require('libxmljs')
 const fs=require('fs')
+const es=require('elasticsearch')
+const proj4 = require('proj4')
+const commons=require('./commons.js')
+
+
+var esClient = new es.Client({
+  host: '127.0.0.1:9200',
+  log: 'error'
+});
+
+proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
+proj4.defs("EPSG:5514","+proj=krovak +lat_0=49.5 +lon_0=24.83333333333333 +alpha=30.28813972222222 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs");
 
 let parser = new libxmljs.SaxPushParser();
 
-let ciselnikyJson=fs.readFileSync("ciselniky-mapa.json")
-let ciselniky=JSON.parse(ciselnikyJson)
-let ciselnikyIndex=[];
-
-ciselniky.forEach((ciselnik)=>{
-	ciselnik.xmlName.forEach((xmlName)=>{
-		ciselnik.values.forEach((value)=>{
-			let key=`${xmlName}-${value.id}`
-			ciselnikyIndex[key]=`${ciselnik.prefix}-${value.meaning}`
-		})
-	})
-})
-
-
-function ciselnikLookup(ciselnikyIndex, xmlName, kod){
-	return ciselnikyIndex[`${xmlName}-${kod}`]
-}
 
 // connect any callbacks here
 parser
@@ -51,34 +46,33 @@ function startElementNs(elem, attrs, prefix, uri, namespace){
 			case 'vf:StavebniObjekt' : 
 				stavebniObjekt={}; 
 				stavebniObjekt.tags=[];
-				stavebniObjekt.typ="stavební-objekt";
+				stavebniObjekt.typ="stavebni-objekt";
 			case 'soi:Kod':
-				nextTextConsumer=(text)=>{ 
+				setNextTextConsumer((text)=>{ 
 					if (stavebniObjekt){
 						stavebniObjekt.kod=text; 
 						nextTextConsumer=null;					
 					}
-				} 
+				} )
 			break;
 			case 'soi:CislaDomovni':
 				cislaDomovni=[];
 			break;
 			case 'com:CisloDomovni':
-				nextTextConsumer=(text)=>{ 
+				setNextTextConsumer((text)=>{ 
 					cislaDomovni.push(text); 
 					nextTextConsumer=null;
-				}
+				})
 			break;
 			case 'pai:Id':
-				nextTextConsumer=(text)=>{ 
+				setNextTextConsumer((text)=>{ 
 					if (stavebniObjekt){
 						stavebniObjekt.identifikacniParcela=text; 
-						nextTextConsumer=null;
 					}
-				}
+				})
 			break;
 			case 'soi:TypStavebnihoObjektuKod':
-				nextTextConsumer=(text)=>{ 
+				setNextTextConsumer((text)=>{ 
 					if (stavebniObjekt){
 						stavebniObjekt.typStavebnihoObjektu=text; 
 						stavebniObjekt.tags.push(
@@ -87,9 +81,8 @@ function startElementNs(elem, attrs, prefix, uri, namespace){
 						       text
 						     )
 						);
-						nextTextConsumer=null;
 					}
-				}
+				})
 			break;
 
 			case 'soi:ZpusobVyuzitiKod':
@@ -236,7 +229,9 @@ function startElementNs(elem, attrs, prefix, uri, namespace){
 			case 'gml:pos':
 				nextTextConsumer=(text)=>{ 
 					if (stavebniObjekt){
-						stavebniObjekt.definicniBod=text; 
+						stavebniObjekt.definicniBod=text;
+						let lonlat=proj4("EPSG:5514","EPSG:4326",text.split(" "))
+						stavebniObjekt.location=lonlat;
 						nextTextConsumer=null;
 					}
 				}
@@ -253,11 +248,20 @@ function endElementNs(elem, prefix, uri){
 
 	try {
 		switch (`${prefix}:${elem}`){
-			case 'vf:StavebniObjekty': console.log("StaveniObjekty-end"); break;
+			case 'vf:StavebniObjekty': 
+				console.log("StaveniObjekty-end"); 
+				commons.sendToElastic(esClient, old);
+			break;
 			case 'vf:StavebniObjekt' : 
-				console.log("stavebniObjekt:",stavebniObjekt);
+				//console.log("stavebniObjekt:",stavebniObjekt);
+				stavebniObjekt.id="SO."+stavebniObjekt.kod;
 				stavebniObjekty.push(stavebniObjekt)
 				stavebniObjekt=null; 
+				if (stavebniObjekty.length>200){
+					let old=stavebniObjekty;
+					stavebniObjekty=[];
+					commons.sendToElastic(esClient, old);
+				}
 			break;
 			case 'soi:CislaDomovni':
 				stavebniObjekt.cislaDomovni=cislaDomovni;
@@ -272,8 +276,3 @@ function endElementNs(elem, prefix, uri){
 }
 
 
-function characters(chars){
-	//console.log("chars:["+chars+"]");
-	if (nextTextConsumer!=null)
-		nextTextConsumer(chars);
-}
