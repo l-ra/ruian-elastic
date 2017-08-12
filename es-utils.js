@@ -5,7 +5,7 @@
 module.exports.sendToElastic =(client,data)=>{
 	let body=[];
 	data.forEach((doc)=>{
-		body.push({index: {_index:doc.typ, _type:doc.typ, _id: doc.id}});
+		body.push({index: {_index:doc.type, _type:doc.type, _id: doc.id}});
 		body.push(doc)
 	})
 	client.bulk(

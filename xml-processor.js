@@ -146,4 +146,38 @@ function findAttrName(attrs, name){
     return false;
 }
 
+
+function getNamespaces(doc) {
+	let namespaces = {};
+	doc.root().namespaces().map((ns) => {
+		return namespaces[ns.prefix()] = ns.href();
+	});
+	return namespaces;
+}
+
+function getValueAttr(doc, ns, xpath, obj, propName) {
+	if (doc.root().find(xpath, ns).length > 0) {
+		let val = doc.root().find(xpath, ns).map((elm) => {
+			return elm.value();
+		})
+		if (val.length==1) obj[propName]=val[0]
+		else obj[propName]=val;
+	}
+}
+
+
+function getValue(doc, ns, xpath, obj, propName) {
+	if (doc.root().find(xpath, ns).length > 0) {
+		let val = doc.root().find(xpath, ns).map((elm) => {
+			return elm.text();
+		})
+		if (val.length==1) obj[propName]=val[0]
+		else obj[propName]=val;
+	}
+}
+
+
 module.exports.processFile=processFile;
+module.exports.getValue=getValue;
+module.exports.getValueAttr = getValueAttr;
+module.exports.getNamespaces = getNamespaces;
