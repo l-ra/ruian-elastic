@@ -42,7 +42,7 @@ function processFile(matchedElements, file, callback) {
         try {
             //record namespace defs
             namespace.forEach((ns)=>{
-                console.log("storing namespace: "+ns[0]);
+                //console.log("storing namespace: "+ns[0]);
                 nsDefs[ns[0]]=ns[1];
             });
 
@@ -74,7 +74,7 @@ function processFile(matchedElements, file, callback) {
                 doc.root(elm)
                 Object.keys(nsDefs).forEach((ns)=>{
                     if (nsDefs.hasOwnProperty(ns)){
-                        console.log(`defining namespace: ${ns}:${nsDefs[ns]}`);
+                        //console.log(`defining namespace: ${ns}:${nsDefs[ns]}`);
                         elm.defineNamespace(ns,nsDefs[ns])
                     }
                 })

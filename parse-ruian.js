@@ -1,359 +1,214 @@
-const es=require('elasticsearch')
+const es = require('elasticsearch')
 const proj4 = require('proj4')
-const common=require('./common.js')
-const ciselniky=require('./ciselniky.js')
-const xmlproc=require('./xml-processor.js')
+const common = require('./common.js')
+const ciselniky = require('./ciselniky.js')
+const xmlproc = require('./xml-processor.js')
 
 var esClient = new es.Client({
-  host: '127.0.0.1:9200',
-  log: 'error'
+	host: '127.0.0.1:9200',
+	log: 'error'
 });
 
-proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
-proj4.defs("EPSG:5514","+proj=krovak +lat_0=49.5 +lon_0=24.83333333333333 +alpha=30.28813972222222 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs");
+proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
+proj4.defs("EPSG:5514", "+proj=krovak +lat_0=49.5 +lon_0=24.83333333333333 +alpha=30.28813972222222 +k=0.9999 +x_0=0 +y_0=0 +ellps=bessel +towgs84=589,76,480,0,0,0,0 +units=m +no_defs");
 
-let file=process.argv[2];
+let file = process.argv[2];
 
-let stavebniObjekty=[];
+let stavebniObjekty = [];
 
-let matched=[
+let matched = [
 	{
-		prefix:'vf',
-		name:'Obec'
+		prefix: 'vf',
+		name: 'StavebniObjekt'
 	},
 	{
-		prefix:'vf',
-		name:'CastObec'
+		prefix: 'vf',
+		name: 'CastObce'
 	},
 	{
-		prefix:'vf:',
-		name:'KatastralniUzemi',
+		prefix: 'vf',
+		name: 'Obec'
+	},
+	{
+		prefix: 'vf:',
+		name: 'KatastralniUzemi',
 		hasAttr: 'id'
 	},
 	{
-		prefix:'vf',
-		name:'Zsj',
+		prefix: 'vf',
+		name: 'Zsj',
 		hasAttr: 'id'
 	},
 	{
-		prefix:'vf',
-		name:'Ulice',
+		prefix: 'vf',
+		name: 'Ulice',
 		hasAttr: 'id'
 	},
 	{
-		prefix:'vf',
-		name:'Parcela',
+		prefix: 'vf',
+		name: 'Parcela',
 		hasAttr: 'id'
 	},
 	{
-		prefix:'vf',
-		name:'AdresniMisto',
+		prefix: 'vf',
+		name: 'AdresniMisto',
 	}
 ];
 
 xmlproc.processFile(matched, file, processElement);
 
-function processElement(doc){
-	switch(doc.root().name()){
-		case 'Obec': 
+function processElement(doc) {
+	switch (doc.root().name()) {
+		case 'Obec':
 			processObec(doc);
 			break;
-		case 'CastObce': 
+		case 'CastObce':
 			processCastObce(doc);
 			break;
-		case 'AdresniMisto': 
+		case 'AdresniMisto':
 			processAdresniMisto(doc)
-			;break;
-		case 'StavebniObjekt': 
+				; break;
+		case 'StavebniObjekt':
 			processStavebniObjekt(doc);
-			break;		
-		case 'Parcela': 
+			break;
+		case 'Parcela':
 			processParcela(doc);
-			break;		
-		case 'Ulice': 
+			break;
+		case 'Ulice':
 			processUlice(doc);
-			;break;		
-		case 'Zsj': 
+			; break;
+		case 'Zsj':
 			processZsj(doc);
-			break;		
-		case 'KatastralniUzemi': 
+			break;
+		case 'KatastralniUzemi':
 			processKU(doc);
-			break;		
+			break;
+	}
+}
+
+function parsePos(strSjstk) {
+	return proj4("EPSG:5514", "EPSG:4326", strSjstk.split(" "))
+}
+
+function getNamespaces(doc) {
+	let namespaces = {};
+	doc.root().namespaces().map((ns) => {
+		return namespaces[ns.prefix()] = ns.href();
+	});
+	return namespaces;
+}
+
+function getValueAttr(doc, ns, xpath, obj, propName) {
+	if (doc.root().find(xpath, ns).length > 0) {
+		let val = doc.root().find(xpath, ns).map((elm) => {
+			return elm.value();
+		})
+		if (val.length==1) obj[propName]=val[0]
+		else obj[propName]=val;
 	}
 }
 
 
-function processObec(doc){
-	//let o={};
-	//o.type="obec";
-	//o.id="/Obec/@gml.Id"
-	console.log("Obec:\n"+doc.toString())
+function getValue(doc, ns, xpath, obj, propName) {
+	if (doc.root().find(xpath, ns).length > 0) {
+		let val = doc.root().find(xpath, ns).map((elm) => {
+			return elm.text();
+		})
+		if (val.length==1) obj[propName]=val[0]
+		else obj[propName]=val;
+	}
 }
 
-function processCastObce(doc){
+function getPosition(doc, ns, xpath, obj, propName){
+	let tmp={}
+	getValue(doc,ns,xpath,tmp, "pos");
+	if (tmp.pos){
+		obj[propName]=Array.isArray(tmp.pos)?parsePos(tmp.pos[0]):parsePos(tmp.pos);
+	}
+}
+
+function processObec(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "obec";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"obi:Nazev",o , "nazev");
+	getValue(doc,ns,"obi:Okres/oki:Kod",o , "okres");
+	getPosition(doc,ns,"obi:Geometrie/obi:DefinicniBod//gml:pos",o,"position");	
+}
+
+function processCastObce(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "cast-obec";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"coi:Nazev",o , "nazev");
+	getValue(doc,ns,"coi:Obec/obi:Kod",o , "obec");
+	getPosition(doc,ns,"coi:Geometrie/coi:DefinicniBod//gml:pos",o,"position");	
 };
 
-function processAdresniMisto(doc){
-
+function processAdresniMisto(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "adresni-misto";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"ami:CisloDomovni",o , "cisloDomovni");
+	getValue(doc,ns,"ami:Psc",o , "psc");
+	getValue(doc,ns,"ami:StavebniObjekt/soi:Kod",o , "stavebniObjekt");
+	getValue(doc,ns,"ami:Ulice/uli:Kod",o , "ulice");
+	getPosition(doc,ns,"ami:Geometrie/ami:DefinicniBod//gml:pos",o,"position");	
 }
 
-function processStavebniObjekt(doc){
-
+function processStavebniObjekt(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "stavebni-objekt";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"soi:CislaDomovni/com:CisloDomovni",o , "cisloDomovni");
+	getValue(doc,ns,"soi:IdentifikacniParcela/pai:Kod",o , "identifikacniParcela");
+	getValue(doc,ns,"soi:TypStavebnihoObjektuKod",o , "typStavebnihoObjektu");
+	getValue(doc,ns,"soi:ZpusobVyuzitiKod",o , "zpusobVyuziti");
+	getValue(doc,ns,"soi:CastObce/coi:Kod",o , "castObce");
+	getValue(doc,ns,"soi:DruhKonstrukceKod",o , "zpusobVyuziti");
+	getValue(doc,ns,"coi:PocetBytu",o , "pocetBytu");
+	getValue(doc,ns,"coi:PocetPodlazi",o , "pocetPodlazi");
+	getValue(doc,ns,"soi:PripojeniKanalizaceKod",o , "pripojeniKanalizace");
+	getValue(doc,ns,"soi:PripojeniPlynKod",o , "pripojeniPlyn");
+	getValue(doc,ns,"soi:VybaveniVytahemKod",o , "vybaveniVytahem");
+	getValue(doc,ns,"soi:ZpusobVytapeniKod",o , "zpusobVytapeni");
+	getPosition(doc,ns,"soi:Geometrie/soi:DefinicniBod//gml:pos",o,"position");	
 }
 
-function processParcela(doc){
+function processParcela(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "parcela";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"pai:KmenoveCislo",o , "kmenoveCislo");
+	getValue(doc,ns,"pai:VymeraParcely",o , "vymera");
+	getValue(doc,ns,"pai:DruhCislovaniKod",o , "druhCislovani");
+	getValue(doc,ns,"pai:DruhPozemkuKod",o , "druhPozemku");
+	getValue(doc,ns,"pai:KatastralniUzemi/kui:Kod",o , "katastralniUzemi");
+	getPosition(doc,ns,"pai:Geometrie/pai:DefinicniBod//gml:pos",o,"position");	
 }
 
-function processUlice(doc){
-
+function processUlice(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "ulice";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"uli:Nazev",o , "nazev");
+	getValue(doc,ns,"uli:Obec/obi:Kod",o , "obec"); //FIXME
 }
 
-function processZsj(doc){
-
+function processKU(doc) {
+	let ns = getNamespaces(doc)
+	let o = {};
+	o.type = "katastralni-uzemi";
+	getValueAttr(doc,ns,"@gml:id",o , "id");
+	getValue(doc,ns,"kui:Nazev",o , "nazev");
+	getValue(doc,ns,"kui:ExistujeDigitalniMapa",o , "existujeDigitalniMapa");
+	getValue(doc,ns,"kui:Obec/obi:Kod",o , "obec");
+	getPosition(doc,ns,"kui:Geometrie/kui:DefinicniBod//gml:pos",o,"position");	
 }
-
-function processKU(doc){
-}
-
-
-
-
-
-// function startElementNs(elem, attrs, prefix, uri, namespace){
-
-// 	try {
-// 		switch (`${prefix}:${elem}`){
-// 			case 'vf:StavebniObjekty': ; break;
-// 			case 'vf:StavebniObjekt' : 
-// 				stavebniObjekt={}; 
-// 				stavebniObjekt.tags=[];
-// 				stavebniObjekt.typ="stavebni-objekt";
-// 			case 'soi:Kod':
-// 				setNextTextConsumer((text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.kod=text; 
-// 						nextTextConsumer=null;					
-// 					}
-// 				} )
-// 			break;
-// 			case 'soi:CislaDomovni':
-// 				cislaDomovni=[];
-// 			break;
-// 			case 'com:CisloDomovni':
-// 				setNextTextConsumer((text)=>{ 
-// 					cislaDomovni.push(text); 
-// 					nextTextConsumer=null;
-// 				})
-// 			break;
-// 			case 'pai:Id':
-// 				setNextTextConsumer((text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.identifikacniParcela=text; 
-// 					}
-// 				})
-// 			break;
-// 			case 'soi:TypStavebnihoObjektuKod':
-// 				setNextTextConsumer((text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.typStavebnihoObjektu=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:TypStavebnihoObjektuKod',
-// 						       text
-// 						     )
-// 						);
-// 					}
-// 				})
-// 			break;
-
-// 			case 'soi:ZpusobVyuzitiKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.zpusobVyuziti=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:ZpusobVyuzitiKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'coi:Kod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.castObce=text; 
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:IsknBudovaId':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.isknBudovaId=text; 
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:DruhKonstrukceKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.druhKonstrukce=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:DruhKonstrukceKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:PocetBytu':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.pocetBytu=Number(text); 
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:PocetPodlazi':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.pocetPodlazi=Number(text); 
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:PripojeniKanalizaceKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.pripojeniKanalizace=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:PripojeniKanalizaceKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:PripojeniPlynKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.pripojeniPlyn=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:PripojeniPlynKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:PripojeniVodovodKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.pripojeniVodovod=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:PripojeniVodovodKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:VybaveniVytahemKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.vybaveniVytahem=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:VybaveniVytahemKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'soi:ZpusobVytapeniKod':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.zpusobVytapeni=text; 
-// 						stavebniObjekt.tags.push(
-// 							ciselnikLookup(ciselnikyIndex,
-// 						       'soi:ZpusobVytapeniKod',
-// 						       text
-// 						     )
-// 						);
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 			case 'gml:pos':
-// 				nextTextConsumer=(text)=>{ 
-// 					if (stavebniObjekt){
-// 						stavebniObjekt.definicniBod=text;
-// 						let lonlat=proj4("EPSG:5514","EPSG:4326",text.split(" "))
-// 						stavebniObjekt.location=lonlat;
-// 						nextTextConsumer=null;
-// 					}
-// 				}
-// 			break;
-
-// 		}		
-// 	}
-// 	catch (error){
-// 		console.error("startElement error:",error);
-// 	}
-// }
-
-// function endElementNs(elem, prefix, uri){
-
-// 	try {
-// 		switch (`${prefix}:${elem}`){
-// 			case 'vf:StavebniObjekty': 
-// 				console.log("StaveniObjekty-end"); 
-// 				commons.sendToElastic(esClient, old);
-// 			break;
-// 			case 'vf:StavebniObjekt' : 
-// 				//console.log("stavebniObjekt:",stavebniObjekt);
-// 				stavebniObjekt.id="SO."+stavebniObjekt.kod;
-// 				stavebniObjekty.push(stavebniObjekt)
-// 				stavebniObjekt=null; 
-// 				if (stavebniObjekty.length>200){
-// 					let old=stavebniObjekty;
-// 					stavebniObjekty=[];
-// 					commons.sendToElastic(esClient, old);
-// 				}
-// 			break;
-// 			case 'soi:CislaDomovni':
-// 				stavebniObjekt.cislaDomovni=cislaDomovni;
-// 				cislaDomovni=null;
-// 			break;
-// 		}		
-// 	}
-// 	catch (error){
-// 		console.error("endElement error:",error);
-// 	}
-	
-// }
-
 
