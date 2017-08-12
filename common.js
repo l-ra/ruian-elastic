@@ -2,7 +2,7 @@
 
 
 
-exports.sendToElastic =(client,data)=>{
+module.exports.sendToElastic =(client,data)=>{
 	let body=[];
 	data.forEach((doc)=>{
 		body.push({index: {_index:doc.typ, _type:doc.typ, _id: doc.id}});
@@ -21,4 +21,3 @@ exports.sendToElastic =(client,data)=>{
 	)
 }
 
-console.log(console.exports)
