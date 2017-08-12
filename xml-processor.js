@@ -45,12 +45,16 @@ function processFile(matchedElements, file, callback) {
                 console.log("storing namespace: "+ns[0]);
                 nsDefs[ns[0]]=ns[1];
             });
+
+
             if (currentElement != null) {
-                //indent=indent+"  "
-                //console.log(indent+"START: found child element:"+elem)
+                //inside matched element
                 let elm = new libxmljs.Element(doc, elem);
-                elm.namespace(prefix, uri)
                 currentElement.addChild(elm)
+                namespace.forEach((ns)=>{
+                    elm.defineNamespace(ns[0],ns[1])
+                })
+                elm.namespace(prefix, uri)
                 let a=[];
                 attrs.forEach((attr)=>{
                     if (attr[1]){
@@ -64,7 +68,7 @@ function processFile(matchedElements, file, callback) {
                 currentElement = elm;
             }
             else if (isMatchedElement(matchedElements,elem, attrs, prefix, uri, namespace)) {
-                ///console.log("starting root element:" + elem);
+                //element just matched
                 doc = new libxmljs.Document();
                 let elm = new libxmljs.Element(doc, elem);
                 doc.root(elm)
