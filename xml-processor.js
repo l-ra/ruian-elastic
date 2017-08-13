@@ -18,19 +18,27 @@ matchedElements:
 const libxmljs = require('libxmljs')
 const fs = require('fs')
 
-function processFile(matchedElements, file, callback) {
+function processFile(matchedElements, file, cbElement, cbFinish) {
     let parser = new libxmljs.SaxPushParser();
     let stream = fs.createReadStream(file, { encoding: 'utf-8' });
-    stream.on('data', (chunk) => {
+    stream
+    .on('data', (chunk) => {
         //console.log("chunk:", chunk);
         parser.push(chunk);
     })
+    .on('end', ()=>{
+        //parser.push("\u0000");
+        stream.close();
+        cbFinish(); 
+    })
     parser
-        .on('startDocument', () => { })
+        .on('startDocument', () => { 
+        })
         .on('startElementNS', startElementNs)
         .on('characters', characters)
         .on('endElementNS', endElementNs)
-        .on('endDocument', () => { stream.close(); })
+        .on('endDocument', () => { 
+        })
 
     let doc = null;
     let currentElement = null;
@@ -102,7 +110,7 @@ function processFile(matchedElements, file, callback) {
         try {
             if (currentElement != null) {
                 if (currentElement === doc.root()) {
-                    callback(doc)
+                    cbElement(doc)
                     currentElement = null;
                     doc = null;
                 }
@@ -130,28 +138,37 @@ function processFile(matchedElements, file, callback) {
 function isMatchedElement(matched, elem, attrs, prefix, uri, namespace){
     let found=false;
     matched.forEach((m)=>{
+        // if (elem=="KatastralniUzemi" && m.name=="KatastralniUzemi" && findAttrName(attrs,m.hasAttr)){
+        //     console.log("KU")
+        // }
         let prefixMatch = !m.prefix || (m.prefix && prefix && m.prefix==prefix);
         let nameMatch = !m.name || m.name==elem;
         let uriMatch = !m.uri || (m.uri && uri && m.uri==uri);
         let hasAttrMatch = !m.hasAttr || (m.hasAttr && attrs && findAttrName(attrs,m.hasAttr));
-        found=found || prefixMatch && nameMatch && uriMatch && hasAttrMatch  
+        found=found || prefixMatch && nameMatch && uriMatch && hasAttrMatch  ;
     })
     return found;
 }
 
 function findAttrName(attrs, name){
-    attrs.forEach((attr)=>{
-        if ( attr[0] === name ) return true;
+    let ret=false;
+    attrs.forEach((attrs)=>{
+        if ( attrs[0] == name ) ret=true;
     })
-    return false;
+    return ret;
 }
 
 
-function getNamespaces(doc) {
+function getNamespaces(doc,nsDef) {
 	let namespaces = {};
 	doc.root().namespaces().map((ns) => {
-		return namespaces[ns.prefix()] = ns.href();
+		namespaces[ns.prefix()] = ns.href();
 	});
+    if (nsDef){
+        Object.keys(nsDef).map((key)=>{
+            namespaces[key] = nsdef[key];
+        })
+    }
 	return namespaces;
 }
 
