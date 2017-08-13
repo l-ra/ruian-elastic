@@ -347,18 +347,18 @@ orp: ${Object.keys(orp).length}
 pou: ${Object.keys(pou).length} 
 `)
 
-esClient.indices.putMapping(
-	{
-		index:"obec,okres,orp,cast-obec,vusc,ulice,parcela,katastralni-uzemi,adresni-misto,region-soudrznosti,pou,kraj,stavebni-objekt",
-		body: {
-			properties: {
-				position:{
-					type: geo_point
-				}
-			}
-		}
-	}
-)
+// esClient.indices.putMapping(
+// 	{
+// 		index:"obec,okres,orp,cast-obec,vusc,ulice,parcela,katastralni-uzemi,adresni-misto,region-soudrznosti,pou,kraj,stavebni-objekt",
+// 		body: {
+// 			properties: {
+// 				position:{
+// 					type: geo_point
+// 				}
+// 			}
+// 		}
+// 	},
+// )
 
 esUtils.sendToElastic(esClient,obce);
 esUtils.sendToElastic(esClient,castiObce);
