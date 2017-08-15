@@ -18,18 +18,29 @@ matchedElements:
 const libxmljs = require('libxmljs')
 const fs = require('fs')
 
-function processFile(matchedElements, file, cbElement, cbFinish) {
+function processFile(matchedElements, file, cbProgress, cbElement, cbFinish) {
     let parser = new libxmljs.SaxPushParser();
+
+    let progress={
+        file: file,
+        bytesTotal: fs.statSync(file).size,
+        bytesSoFar: 0,
+        done: false, 
+    }    
+
     let stream = fs.createReadStream(file, { encoding: 'utf-8' });
     stream
     .on('data', (chunk) => {
-        //console.log("chunk:", chunk);
         parser.push(chunk);
+        progress.bytesSoFar+=chunk.length;
+        process.nextTick(()=>{cbProgress(progress)})
     })
     .on('end', ()=>{
         //parser.push("\u0000");
         stream.close();
         cbFinish(); 
+        progress.done=true;
+        process.nextTick(()=>{cbProgress(progress)})
     })
     parser
         .on('startDocument', () => { 
@@ -102,7 +113,7 @@ function processFile(matchedElements, file, cbElement, cbFinish) {
             }
         }
         catch (error) {
-            console.log("!!!Error: ", error)
+            console.log("!!!Error: ", error, error.stack)
         }
     }
 
@@ -123,7 +134,7 @@ function processFile(matchedElements, file, cbElement, cbFinish) {
 
         }
         catch (error) {
-            console.log("!!!Error: ", error)
+            console.log("!!!Error: ", error, error.stack)
         }
     }
 
@@ -182,14 +193,37 @@ function getValueAttr(doc, ns, xpath, obj, propName) {
 	}
 }
 
+let cbCodebookResolver=null;
+function setCodebookResolver(cbResolveCodebook){
+    cbCodebookResolver=cbResolveCodebook;
+}
 
-function getValue(doc, ns, xpath, obj, propName) {
+function getValue(doc, ns, xpath, obj, propName){
+    return getValueFull(doc, ns, xpath, obj, propName, cbCodebookResolver)
+}
+
+function getValueFull(doc, ns, xpath, obj, propName, cbResolveCodebook) {
+    if (!obj.tags){
+        obj.tags=[];
+    }
 	if (doc.root().find(xpath, ns).length > 0) {
 		let val = doc.root().find(xpath, ns).map((elm) => {
-			return elm.text();
+            let ret={
+                value: elm.text(),
+                tag: cbResolveCodebook?cbResolveCodebook(elm.namespace().prefix()+":"+elm.name(), elm.text()):null
+            }
+			return ret;
 		})
-		if (val.length==1) obj[propName]=val[0]
-		else obj[propName]=val;
+		if (val.length==1) {
+            obj[propName]=val[0].value
+            if (val[0].tag) obj.tags.push(val[0].tag);
+        }
+		else {
+            obj[propName]=val.map((valElm)=>{return valElm.value});
+            val.forEach((valElm)=>{
+                if (valElm.tag) obj.tags.push(valElm.tag)
+            })
+        }
 	}
 }
 
@@ -198,3 +232,4 @@ module.exports.processFile=processFile;
 module.exports.getValue=getValue;
 module.exports.getValueAttr = getValueAttr;
 module.exports.getNamespaces = getNamespaces;
+module.exports.setCodebookResolver = setCodebookResolver;

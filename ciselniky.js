@@ -1,5 +1,6 @@
 const fs=require('fs')
 
+//FIXME: hardcoded filename
 let ciselnikyJson=fs.readFileSync("ciselniky-mapa.json")
 let ciselniky=JSON.parse(ciselnikyJson)
 let ciselnikyIndex=[];
@@ -15,7 +16,13 @@ ciselniky.forEach((ciselnik)=>{
 
 
 function ciselnikLookup( xmlName, kod){
-	return ciselnikyIndex[`${xmlName}-${kod}`]
+	let ret=ciselnikyIndex[`${xmlName}-${kod}`];
+	if (!ret){
+		return null
+	}
+	else {
+		return ret;
+	}
 }
 
 module.exports.ciselnikLookup=ciselnikLookup

@@ -3,7 +3,7 @@ const proj4 = require('proj4')
 const esUtils = require('./es-utils.js')
 const ciselniky = require('./ciselniky.js')
 const xmlproc = require('./xml-processor.js')
-const fs=require('fs')
+const fs = require('fs')
 
 
 var esClient = new es.Client({
@@ -18,7 +18,7 @@ function parsePos(strSjstk) {
 	return proj4("EPSG:5514", "EPSG:4326", strSjstk.split(" "))
 }
 
-let nsDef=JSON.parse(fs.readFileSync("ns-def.json"));
+let nsDef = JSON.parse(fs.readFileSync("ns-def.json"));
 
 let stat = process.argv[2]
 let obec = process.argv[3];
@@ -83,9 +83,24 @@ let matched = [
 	},
 ];
 
-xmlproc.processFile(matched, stat, processElement, ()=>{
-	xmlproc.processFile(matched, obec, processElement, finished);
+
+xmlproc.setCodebookResolver((xmlName,kod)=>{
+	return ciselniky.ciselnikLookup(xmlName,kod);
 })
+
+esUtils.ensureIndex(esClient, "index-settings.json", 
+	()=>{   //OK - can index
+		xmlproc.processFile(matched, stat, parseProgress, processElement, () => {
+			xmlproc.processFile(matched, obec, parseProgress, processElement, finished);
+		})
+	},
+	(err)=>{   //err - no index - it is useless to index using defaults
+		console.error("no indexes - rejecting to index with default settings - it is useless",err);
+	}
+);
+
+
+
 
 let obce = {};
 let castiObce = {};
@@ -94,12 +109,15 @@ let stavebniObjekty = {};
 let parcely = {};
 let ulice = {};
 let katUzemi = {};
-let regionSoudr ={};
+let regionSoudr = {};
 let kraje = {};
 let vusc = {};
 let okresy = {};
 let orp = {};
 let pou = {};
+let momc = {};
+let mop = {};
+let spravniObvody = {};
 
 function processElement(doc, nsDef) {
 	switch (doc.root().name()) {
@@ -155,6 +173,18 @@ function processElement(doc, nsDef) {
 			let p = processPou(doc, nsDef);
 			pou[p.id] = p;
 			break;
+		case 'Momc':
+			let mo = processMomc(doc, nsDef);
+			momc[mo.id] = mo;
+			break;
+		case 'Mop':
+			let mp = processMop(doc, nsDef);
+			mop[mp.id] = mp;
+			break;
+		case 'SpravniObvod':
+			let sob = processSpravniObvod(doc, nsDef);
+			spravniObvody[sob.id] = sob;
+			break;
 	}
 }
 
@@ -166,8 +196,8 @@ function getPosition(doc, ns, xpath, obj, propName) {
 	}
 }
 
-function processObec(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processObec(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "obec";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -178,10 +208,10 @@ function processObec(doc,nsDef) {
 	return o;
 }
 
-function processCastObce(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processCastObce(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
-	o.type = "cast-obec";
+	o.type = "cast-obce";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
 	xmlproc.getValue(doc, ns, "coi:Nazev", o, "nazev");
 	xmlproc.getValue(doc, ns, "coi:Obec/obi:Kod", o, "obec");
@@ -189,12 +219,14 @@ function processCastObce(doc,nsDef) {
 	return o;
 };
 
-function processAdresniMisto(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processAdresniMisto(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "adresni-misto";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
 	xmlproc.getValue(doc, ns, "ami:CisloDomovni", o, "cisloDomovni");
+	xmlproc.getValue(doc, ns, "ami:CisloOrientacni", o, "cisloOrientacni");
+	xmlproc.getValue(doc, ns, "ami:CisloOrientacniPismeno", o, "cisloOrientacniPismeno");
 	xmlproc.getValue(doc, ns, "ami:Psc", o, "psc");
 	xmlproc.getValue(doc, ns, "ami:StavebniObjekt/soi:Kod", o, "stavebniObjekt");
 	xmlproc.getValue(doc, ns, "ami:Ulice/uli:Kod", o, "ulice");
@@ -202,29 +234,49 @@ function processAdresniMisto(doc,nsDef) {
 	return o;
 }
 
-function processStavebniObjekt(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processStavebniObjekt(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "stavebni-objekt";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
 	xmlproc.getValue(doc, ns, "soi:CislaDomovni/com:CisloDomovni", o, "cisloDomovni");
-	xmlproc.getValue(doc, ns, "soi:IdentifikacniParcela/pai:Kod", o, "identifikacniParcela");
+	xmlproc.getValue(doc, ns, "soi:IdentifikacniParcela/pai:Id", o, "identifikacniParcela");
 	xmlproc.getValue(doc, ns, "soi:TypStavebnihoObjektuKod", o, "typStavebnihoObjektu");
 	xmlproc.getValue(doc, ns, "soi:ZpusobVyuzitiKod", o, "zpusobVyuziti");
 	xmlproc.getValue(doc, ns, "soi:CastObce/coi:Kod", o, "castObce");
-	xmlproc.getValue(doc, ns, "soi:DruhKonstrukceKod", o, "zpusobVyuziti");
-	xmlproc.getValue(doc, ns, "coi:PocetBytu", o, "pocetBytu");
-	xmlproc.getValue(doc, ns, "coi:PocetPodlazi", o, "pocetPodlazi");
+	xmlproc.getValue(doc, ns, "soi:DruhKonstrukceKod", o, "druhKonstrukce");
+	xmlproc.getValue(doc, ns, "soi:PocetBytu", o, "pocetBytu");
+	xmlproc.getValue(doc, ns, "soi:PocetPodlazi", o, "pocetPodlazi");
 	xmlproc.getValue(doc, ns, "soi:PripojeniKanalizaceKod", o, "pripojeniKanalizace");
 	xmlproc.getValue(doc, ns, "soi:PripojeniPlynKod", o, "pripojeniPlyn");
 	xmlproc.getValue(doc, ns, "soi:VybaveniVytahemKod", o, "vybaveniVytahem");
 	xmlproc.getValue(doc, ns, "soi:ZpusobVytapeniKod", o, "zpusobVytapeni");
+	xmlproc.getValue(doc, ns, "soi:Dokonceni", o, "dostaven");
+
+	//detailni tea
+	xmlproc.getValue(doc, ns, "soi:DetailniTEA/soi:DetailniTEA/soi:Kod", o, "teaKod");
+	if (o.teaKod) {
+		o.detailniTea=[];
+		for (let i = 1; i <= o.teaKod.length; i++) {
+			let tea = {};
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:Kod`, tea, `kod`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:DruhKonstrukceKod`, tea, `druhKonstrukce`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:PocetBytu`, tea, `pocetBytu`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:PocetPodlazi`, tea, `pocetPodlazi`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:PripojeniKanalizaceKod`, tea, `pripojeniKanalizace`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:PripojeniPlynKod`, tea, `pripojeniPlyn`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:VybaveniVytahemKod`, tea, `vybaveniVytahem`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:ZpusobVytapeniKod`, tea, `zpusobVytapeni`);
+			xmlproc.getValue(doc, ns, `soi:DetailniTEA/soi:DetailniTEA[${i}]/soi:AdresniMistoKod/base:Kod`, tea, `adresniMisto`);
+			o.detailniTea.push(tea);
+		}
+	}
 	getPosition(doc, ns, "soi:Geometrie/soi:DefinicniBod//gml:pos", o, "position");
 	return o;
 }
 
-function processParcela(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processParcela(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "parcela";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -237,8 +289,8 @@ function processParcela(doc,nsDef) {
 	return o;
 }
 
-function processUlice(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processUlice(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "ulice";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -247,8 +299,8 @@ function processUlice(doc,nsDef) {
 	return o;
 }
 
-function processKU(doc,nsDef) {
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processKU(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "katastralni-uzemi";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -259,8 +311,8 @@ function processKU(doc,nsDef) {
 	return o;
 }
 
-function processRegSoudr(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processRegSoudr(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "region-soudrznosti";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -270,8 +322,8 @@ function processRegSoudr(doc,nsDef){
 	return o;
 }
 
-function processKraj(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processKraj(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "kraj";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -281,8 +333,8 @@ function processKraj(doc,nsDef){
 	return o;
 }
 
-function processVusc(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processVusc(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "vusc";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -293,21 +345,21 @@ function processVusc(doc,nsDef){
 	return o;
 }
 
-function processOkres(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processOkres(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "okres";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
 	xmlproc.getValue(doc, ns, "oki:Nazev", o, "nazev");
 	xmlproc.getValue(doc, ns, "oki:Kraj/kri:Kod", o, "kraj");
-	xmlproc.getValue(doc, ns, "oki:Vusc/vci:Kod", o, "");
+	xmlproc.getValue(doc, ns, "oki:Vusc/vci:Kod", o, "vusc");
 	xmlproc.getValue(doc, ns, "oki:NutsLau", o, "nutsLau");
 	getPosition(doc, ns, "oki:Geometrie/pai:DefinicniBod//gml:pos", o, "position");
 	return o;
 }
 
-function processOrp(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processOrp(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "orp";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -318,8 +370,8 @@ function processOrp(doc,nsDef){
 	return o;
 }
 
-function processPou(doc,nsDef){
-	let ns = xmlproc.getNamespaces(doc,nsDef)
+function processPou(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
 	let o = {};
 	o.type = "pou";
 	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
@@ -327,6 +379,42 @@ function processPou(doc,nsDef){
 	xmlproc.getValue(doc, ns, "pui:SpravniObecKod", o, "spravniObecKod");
 	xmlproc.getValue(doc, ns, "pui:Orp/opi:Kod", o, "orp");
 	getPosition(doc, ns, "pui:Geometrie/pui:DefinicniBod//gml:pos", o, "position");
+	return o;
+}
+
+function processMomc(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
+	let o = {};
+	o.type = "momc";
+	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
+	xmlproc.getValue(doc, ns, "mci:Nazev", o, "nazev");
+	xmlproc.getValue(doc, ns, "mci:Mop/mpi:Kod", o, "mop");
+	xmlproc.getValue(doc, ns, "mci:Obec/obi:Kod", o, "obec");
+	xmlproc.getValue(doc, ns, "mci:SpravniObvod/spi:Kod", o, "spravniObvod");
+	getPosition(doc, ns, "mci:Geometrie/mci:DefinicniBod//gml:pos", o, "position");
+	return o;
+}
+
+function processMop(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
+	let o = {};
+	o.type = "mop";
+	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
+	xmlproc.getValue(doc, ns, "mop:Nazev", o, "nazev");
+	xmlproc.getValue(doc, ns, "mop:Obec/obi:Kod", o, "obec");
+	getPosition(doc, ns, "mop:Geometrie/mop:DefinicniBod//gml:pos", o, "position");
+	return o;
+}
+
+function processSpravniObvod(doc, nsDef) {
+	let ns = xmlproc.getNamespaces(doc, nsDef)
+	let o = {};
+	o.type = "spravni-obvod";
+	xmlproc.getValueAttr(doc, ns, "@gml:id", o, "id");
+	xmlproc.getValue(doc, ns, "spi:Nazev", o, "nazev");
+	xmlproc.getValue(doc, ns, "spi:SpravniMomcKod", o, "spravniMomc");
+	xmlproc.getValue(doc, ns, "spi:Obec/obi:Kod", o, "obec");
+	getPosition(doc, ns, "spi:Geometrie/spi:DefinicniBod//gml:pos", o, "position");
 	return o;
 }
 
@@ -345,65 +433,114 @@ vusc: ${Object.keys(vusc).length}
 okresy: ${Object.keys(okresy).length} 
 orp: ${Object.keys(orp).length} 
 pou: ${Object.keys(pou).length} 
+momc: ${Object.keys(momc).length} 
+mop: ${Object.keys(mop).length} 
+spravniObv: ${Object.keys(spravniObvody).length} 
 `)
 
-// esClient.indices.putMapping(
-// 	{
-// 		index:"obec,okres,orp,cast-obec,vusc,ulice,parcela,katastralni-uzemi,adresni-misto,region-soudrznosti,pou,kraj,stavebni-objekt",
-// 		body: {
-// 			properties: {
-// 				position:{
-// 					type: geo_point
-// 				}
-// 			}
-// 		}
-// 	},
-// )
-
-esUtils.sendToElastic(esClient,obce);
-esUtils.sendToElastic(esClient,castiObce);
-esUtils.sendToElastic(esClient,adresniMista);
-esUtils.sendToElastic(esClient,stavebniObjekty);
-esUtils.sendToElastic(esClient,parcely);
-esUtils.sendToElastic(esClient,ulice);
-esUtils.sendToElastic(esClient,katUzemi);
-esUtils.sendToElastic(esClient,regionSoudr);
-esUtils.sendToElastic(esClient,kraje);
-esUtils.sendToElastic(esClient,okresy);
-esUtils.sendToElastic(esClient,vusc);
-esUtils.sendToElastic(esClient,orp);
-esUtils.sendToElastic(esClient,pou);
+	// esClient.indices.putMapping(
+	// 	{
+	// 		index:"obec,okres,orp,cast-obec,vusc,ulice,parcela,katastralni-uzemi,adresni-misto,region-soudrznosti,pou,kraj,stavebni-objekt",
+	// 		body: {
+	// 			properties: {
+	// 				position:{
+	// 			a		type: geo_point
+	// 				}
+	// 			}
+	// 		}
+	// 	},
+	// )
 
 	//enrich adresni misto
-	// Object.keys(adresniMista).map((key) => {
-	// 	let elm = adresniMista[key];
-	// 	console.log("AM:"+key)
-	// 	if (elm.obec) {
-	// 		console.log("adresa s obci !!!")
-	// 		let obecId = "OB." + elm.obec;
-	// 		elm.obec = {
-	// 			id: obecId,
-	// 			nazev: obce[obecId].nazev,
-	// 		}
-	// 	}
-	// 	else {
-	// 		console.log("adresa bez obce")
-	// 	}
+	Object.keys(adresniMista).map((key) => {
+		let am = adresniMista[key];
+		let ul = am.ulice?ulice["UL."+am.ulice]:null;
+		let so = stavebniObjekty["SO."+am.stavebniObjekt]
+		let obecZUlice
+		let obecZObjektu
+		let obec
+		if (ul){
+			am.ulice=ul.nazev
+			if (ul.obec && obce["OB."+ul.obec]){
+				obecZUlice=obce["OB."+ul.obec]			
+			}
+		}
+		if (so){
+			let castObce=castiObce["CO."+so.castObce]
+			let momcSo=momc["MC."+so.momc]
+			if (castObce) {
+				am.castObceMomc=am.castObce=castObce.nazev
+				obecZObjektu=obce["OB."+castObce.obec]
+			}
+			if (momcSo) {
+				am.castObceMomc=am.momc=momcSo.nazev
+				obecZObjektu=obce["OB."+momcSo.obec]
+			}
+		}
+		obec=obecZUlice || obecZObjektu;
+		if (obec){
+			let okres=okresy["OK."+obec.okres]
+			am.okres=okres.nazev
+			let pou_=pou["PU."+obec.pou]
+			am.pou=pou_.nazev
+			let orp_=orp["OP."+pou_.orp]
+			am.orp=orp_.nazev
+			let vusc_=vusc["VC."+orp_.vusc]
+			am.vusc=vusc_.nazev
+			let kraj=kraje["KR."+okres.kraj]
+			am.kraj1960=kraj.nazev
+		}
 
-	// 	if (elm.ulice) {
-	// 		console.log("adresa s ulici !!!")
-	// 		let uliceId = "UL." + elm.ulice;
-	// 		elm.ulice = {
-	// 			id: uliceId,
-	// 			nazev: ulice[uliceId].nazev
-	// 		}
-	// 		console.log("adresa s ulici: "+elm.ulice.nazev)
-	// 	}
-	// 	else {
-	// 		console.log("adresa bez ulice")
-	// 	}
-	// })
+		let detaily=so;
+		if (so.detailniTea){
+			so.detailniTea.forEach((det)=>{
+				if (key.indexOf(det.adresniMisto)>0){
+					detaily=det
+				}
+			})
+		}
+		if (detaily.pocetBytu) am.pocetBytu=Number(detaily.pocetBytu)
+		if (detaily.pocetPodlazi) am.pocetPodlazi=Number(detaily.pocetPodlazi)
+		am.tags=(am.tagts || []).concat(detaily.tags);
+		
+	})
 
+	esUtils.sendToElastic(esClient, obce);
+	esUtils.sendToElastic(esClient, castiObce);
+	esUtils.sendToElastic(esClient, adresniMista);
+	esUtils.sendToElastic(esClient, stavebniObjekty);
+	esUtils.sendToElastic(esClient, parcely);
+	esUtils.sendToElastic(esClient, ulice);
+	esUtils.sendToElastic(esClient, katUzemi);
+	esUtils.sendToElastic(esClient, regionSoudr);
+	esUtils.sendToElastic(esClient, kraje);
+	esUtils.sendToElastic(esClient, okresy);
+	esUtils.sendToElastic(esClient, vusc);
+	esUtils.sendToElastic(esClient, orp);
+	esUtils.sendToElastic(esClient, pou);
+	esUtils.sendToElastic(esClient, momc);
+	esUtils.sendToElastic(esClient, mop);
+	esUtils.sendToElastic(esClient, spravniObvody);
 
 }
 
+let notifyInterval;
+let lastProgress = {};
+function parseProgress(progress) {
+	if (!notifyInterval) {
+		notifyInterval = setInterval(() => {
+			console.log(new Date());
+			let keys = Object.keys(lastProgress)
+			let todo = keys.length;
+			keys.forEach((key) => {
+				let prog = lastProgress[key];
+				if (prog.done) todo -= 1;
+				console.log(`>>> ${prog.file}: ${prog.bytesSoFar} of ${prog.bytesTotal} (${prog.done ? 100 : Math.round(100 * prog.bytesSoFar / prog.bytesTotal)}%)`)
+			})
+			if (todo == 0 && notifyInterval) {
+				clearInterval(notifyInterval)
+			}
+		}, 5000)
+	}
+	lastProgress[progress.file] = progress;
+}
